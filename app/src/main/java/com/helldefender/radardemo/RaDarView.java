@@ -30,49 +30,29 @@ public class RaDarView extends View {
 
     private static final int LONG_DISTANCE_COLOR = Color.parseColor("#FFCC00");
 
-    private int DANGER_DISTANCE;
+    private int dangerDistance;
 
-    private int SHORT_DISTANCE;
+    private int shortDistance;
 
-    private int LONG_DISTANCE;
+    private int longDistance;
 
-    private final int REGION_FIR = 1;
+    private int raDar1MeasureLength;
 
-    private final int REGION_SEC = 2;
+    private int raDar2MeasureLength;
 
-    private final int REGION_THI = 3;
+    private int raDar3MeasureLength;
 
-    private final int REGION_FOU = 4;
+    private int raDar4MeasureLength;
 
-    private final int REGION_FIF = 5;
+    private int raDar5MeasureLength;
 
-    private int LENGTH_RADAR1;
+    private int raDar6MeasureLength;
 
-    private int LENGTH_RADAR2;
+    private int raDarNum;
 
-    private int LENGTH_RADAR3;
+    private int verticalDistance;
 
-    private int LENGTH_RADAR4;
-
-    private int LENGTH_RADAR5;
-
-    private int LENGTH_1to2;
-
-    public int LENGTH_2to3;
-
-    public int LENGTH_3to4;
-
-    public int LENGTH_4to5;
-
-    public int ANGLE_FIR;
-
-    public int ANGLE_SEC;
-
-    public int ANGLE_THI;
-
-    public int ANGLE_FOU;
-
-    public int ANGLE_FIF;
+    private int raDarAngle;
 
     private int FLAG = 1;
 
@@ -207,10 +187,6 @@ public class RaDarView extends View {
     }
 
     private void drawRadar(Canvas canvas) {
-
-        //假如不是从第一个区域开始绘制
-        //假如不是在最后一个区域结束绘制
-
         for (int i = 0; i < mUpPointList.size(); i++) {
             Point point = mUpPointList.get(i);
             getUpRegion(point, canvas);
@@ -257,46 +233,68 @@ public class RaDarView extends View {
     }
 
     private void getUpRegion(Point point, Canvas canvas) {
-        switch (FLAG) {
-            case REGION_FIR:
-                int dxTo2 = getMeasuredWidth() / 2 - LENGTH_2to3 - point.x;
-                judgeUpPoint(dxTo2, ANGLE_SEC, point, true, canvas);
-                break;
-            case REGION_SEC:
-                int dxTo3 = getMeasuredWidth() / 2 - point.x;
-                judgeUpPoint(dxTo3, ANGLE_THI, point, true, canvas);
-                break;
-            case REGION_THI:
-                int dxTo3Right = point.x - getMeasuredWidth() / 2;
-                judgeUpPoint(dxTo3Right, ANGLE_THI, point, false, canvas);
-                break;
-            case REGION_FOU:
-                int dxTo4Right = getMeasuredWidth() / 2 + LENGTH_3to4 - point.x;
-                judgeUpPoint(dxTo4Right, ANGLE_FOU, point, false, canvas);
-                break;
-            case REGION_FIF:
+        //int regionAngle = (raDarAngle + raDarOffsetAngle) * 2 / raDarNum;
+        int angle = 90 - getRegionAngle();
+        int dx = getRegionLocation() - point.x;
+        //Log.d("DAI", "FLAG " + FLAG + "  getRegionAngle  " + getRegionAngle() + "  RegionLocation  " + getRegionLocation());
+
+        if (raDarNum % 2 == 0) {
+            if (FLAG < (raDarNum / 2)) {
+                judgeUpPoint(dx, angle, point, canvas, false, true, false);
+            } else if (FLAG == (raDarNum / 2)) {
+                //int angle = 0;
+                if (point.x < getRegionLocation()) {
+                    judgeUpPoint(dx, getRegionAngle(), point, canvas, false, false, false);
+                } else {
+                    judgeUpPoint(dx, getRegionAngle(), point, canvas, true, false, false);
+                }
+            } else if (FLAG != raDarNum) {
+                if (point.x <= getRegionLocation()) {
+                    judgeUpPoint(dx, angle, point, canvas, false, false, false);
+                } else if (point.y > (int) (Math.abs(dx) * Math.tan(Math.toRadians(angle)))) {
+                    judgeUpPoint(dx, angle, point, canvas, false, false, false);
+                } else {
+                    judgeUpPoint(dx, angle, point, canvas, true, false, false);
+                }
+            } else {
                 mRegionUpPointList.add(point);
 
                 if (point.y < shaderStartY) {
                     shaderStartX = point.x;
                     shaderStartY = point.y;
                 }
+            }
+        } else {
+            if (FLAG <= (raDarNum / 2)) {
+                //int angle = 90 - getRegionAngle();
+                judgeUpPoint(dx, angle, point, canvas, false, true, false);
+            } else if (FLAG != raDarNum) {
+                //int angle = 90 - getRegionAngle();
+                if (point.x <= getRegionLocation()) {
+                    judgeUpPoint(dx, angle, point, canvas, false, false, true);
+                } else if (point.y > (int) (Math.abs(dx) * Math.tan(Math.toRadians(angle)))) {
+                    judgeUpPoint(dx, angle, point, canvas, false, false, true);
+                } else {
+                    judgeUpPoint(dx, angle, point, canvas, true, false, false);
+                }
+            } else {
+                mRegionUpPointList.add(point);
+
+                if (point.y < shaderStartY) {
+                    shaderStartX = point.x;
+                    shaderStartY = point.y;
+                }
+            }
         }
     }
 
-    private void judgeUpPoint(int dx, int angle, Point point, boolean left, Canvas canvas) {
-        int borderValue = (int) (Math.abs(dx) * Math.tan(Math.toRadians(90 - angle / 2)));
+    private void judgeUpPoint(int dx, int angle, Point point, Canvas canvas, boolean isCenter, boolean isLeft, boolean isAdd) {
+        int borderValue = (int) (Math.abs(dx) * Math.tan(Math.toRadians(angle)));
 
-        if ((left ? point.y < borderValue : point.y > borderValue) && point.x < getRaDarPosition()) {
-//            if (FLAG == 2 || FLAG == 3 || FLAG == 4) {
-//                int raDarX = getMeasuredWidth() / 2 + getRaDarDistance();
-//                int borderY = (int) (Math.abs(raDarX - point.x) * Math.tan(Math.toRadians(90 - angle / 2)));
-//                if (point.y > borderY) {
-//                    mRegionUpPointList.add(point);
-//                }
-//            } else {
-//                mRegionUpPointList.add(point);
-//            }
+        //Log.d("DAI", "UP  " + FLAG + "  " + " borderValue " + borderValue + "   X  " + point.x + "  Y  " + point.y + "  angle  " + angle + "  dx  " + dx);
+
+        if (isLeft ? point.y < borderValue : point.y > borderValue && !isCenter || isAdd) {
+
             mRegionUpPointList.add(point);
 
             if (point.y < shaderStartY) {
@@ -307,10 +305,6 @@ public class RaDarView extends View {
             //处理过渡点
             int borderX = (lastUpX + point.x) / 2;
             int borderY = (lastUpY + point.y) / 2;
-
-//            double tempBorder = point.x + borderValue * Math.tan(Math.toRadians(angle / 2)) - (getRaDarPosition() * Math.tan(Math.toRadians(90 - angle / 2)) * Math.tan(Math.toRadians(angle / 2)));
-//            int borderX = (int) (tempBorder / (1 - Math.tan(Math.toRadians(90 - angle / 2)) * Math.tan(Math.toRadians(angle / 2))));
-//            int borderY = (int) (Math.tan(Math.toRadians(90 - angle / 2)) * Math.abs(getRaDarPosition() - borderX));
 
             mRegionUpPointList.add(new Point(borderX, borderY));
 
@@ -351,41 +345,53 @@ public class RaDarView extends View {
     }
 
     private boolean getDownRegion(Point point, Canvas canvas, int i) {
-        switch (FLAG) {
-            case REGION_FIR:
-                int dxTo2 = getMeasuredWidth() / 2 - LENGTH_2to3 - point.x;
-                return judgeDownPoint(dxTo2, ANGLE_SEC, point, true, canvas, i);
-            case REGION_SEC:
-                int dxTo3 = getMeasuredWidth() / 2 - point.x;
-                return judgeDownPoint(dxTo3, ANGLE_THI, point, true, canvas, i);
-            case REGION_THI:
-                int dxTo3Right = point.x - getMeasuredWidth() / 2;
-                return judgeDownPoint(dxTo3Right, ANGLE_THI, point, false, canvas, i);
-            case REGION_FOU:
-                int dxTo4Right = getMeasuredWidth() / 2 + LENGTH_3to4 - point.x;
-                return judgeDownPoint(dxTo4Right, ANGLE_FOU, point, false, canvas, i);
-            default:
+        //int regionAngle = raDarAngle / raDarNum;
+        int angle = 90 - getRegionAngle();
+        int dx = getRegionLocation() - point.x;
+
+        if (raDarNum % 2 == 0) {
+            if (FLAG < (raDarNum / 2)) {
+                return judgeDownPoint(dx, angle, point, canvas, i, false, true, false);
+            } else if (FLAG == (raDarNum / 2)) {
+                if (point.x < getRegionLocation()) {
+                    return judgeDownPoint(dx, getRegionAngle(), point, canvas, i, false, false, false);
+                } else {
+                    return judgeDownPoint(dx, getRegionAngle(), point, canvas, i, true, false, false);
+                }
+            } else if (FLAG != raDarNum) {
+                if (point.x <= getRegionLocation()) {
+                    return judgeDownPoint(dx, angle, point, canvas, i, false, false, false);
+                } else if (point.y > (int) (Math.abs(dx) * Math.tan(Math.toRadians(angle)))) {
+                    return judgeDownPoint(dx, angle, point, canvas, i, false, false, false);
+                } else {
+                    return judgeDownPoint(dx, angle, point, canvas, i, true, false, false);
+                }
+            } else {
                 return false;
+            }
+        } else {
+            if (FLAG <= (raDarNum / 2)) {
+                return judgeDownPoint(dx, angle, point, canvas, i, false, true, false);
+            } else if (FLAG != raDarNum) {
+                if (point.x <= getRegionLocation()) {
+                    return judgeDownPoint(dx, angle, point, canvas, i, false, false, true);
+                } else if (point.y > (int) (Math.abs(dx) * Math.tan(Math.toRadians(angle)))) {
+                    return judgeDownPoint(dx, angle, point, canvas, i, false, false, true);
+                } else {
+                    return judgeDownPoint(dx, angle, point, canvas, i, true, false, false);
+                }
+            } else {
+                return false;
+            }
         }
     }
 
-    private boolean judgeDownPoint(int dx, int angle, Point point, boolean left, Canvas canvas, int deleteLength) {
-        int borderValue = (int) (Math.abs(dx) * Math.tan(Math.toRadians(90 - angle / 2)));
+    private boolean judgeDownPoint(int dx, int angle, Point point, Canvas canvas, int deleteLength, boolean isCenter, boolean isLeft, boolean isAdd) {
+        int borderValue = (int) (Math.abs(dx) * Math.tan(Math.toRadians(angle)));
 
-        //对于区域 2,3,4中的跳跃点进行处理，如果为跳跃点不加入到集合中
-        if (left ? point.y < borderValue : point.y > borderValue) {
+        //Log.d("DAI", "DOWN" + "   borderValue  " + borderValue + "   X  " + point.x + "  Y  " + point.y);
 
-//            if (FLAG == 2 || FLAG == 3 || FLAG == 4) {
-//                int raDarX = getMeasuredWidth() / 2 + getRaDarDistance();
-//                //这里的角度可能不对，如果现在是区域2，angle为雷达3的角度  如果每个雷达的张角都是一样的话，就不用考虑
-//                int borderY = (int) (Math.abs(raDarX - point.x) * Math.tan(Math.toRadians(90 - angle / 2)));
-//                if (point.y > borderY) {
-//                    mRegionDownPointList.add(point);
-//                }
-//            } else {
-//                mRegionDownPointList.add(point);
-//            }
-
+        if (isLeft ? point.y < borderValue : point.y > borderValue && !isCenter || isAdd) {
             mRegionDownPointList.add(point);
 
             if (point.y > shaderEndY) {
@@ -401,10 +407,6 @@ public class RaDarView extends View {
             //对过渡点的处理
             int borderX = (lastDownX + point.x) / 2;
             int borderY = (lastDownY + point.y) / 2;
-
-//            double tempBorder = point.x + borderValue * Math.tan(Math.toRadians(angle / 2)) - (getRaDarPosition() * Math.tan(Math.toRadians(90 - angle / 2)) * Math.tan(Math.toRadians(angle / 2)));
-//            int borderX = (int) (tempBorder / (1 - Math.tan(Math.toRadians(90 - angle / 2)) * Math.tan(Math.toRadians(angle / 2))));
-//            int borderY = (int) (Math.tan(Math.toRadians(90 - angle / 2)) * Math.abs(getRaDarPosition() - borderX));
 
             mRegionDownPointList.add(new Point(borderX, borderY));
 
@@ -455,52 +457,86 @@ public class RaDarView extends View {
         }
     }
 
-    private int getRaDarPosition() {
-        switch (FLAG) {
-            case 1:
-                return getMeasuredWidth() / 2 - LENGTH_2to3;
-            case 2:
+    private int getRegionLocation() {
+        int regionAngle = raDarAngle / raDarNum;
+
+        //雷达个数为偶数
+        if (raDarNum % 2 == 0) {
+            if (FLAG < (raDarNum / 2)) {
+                return (int) (getMeasuredWidth() / 2 - verticalDistance * Math.tan(Math.toRadians((raDarNum / 2 - FLAG) * regionAngle)));
+            } else if (FLAG == (raDarNum / 2)) {
                 return getMeasuredWidth() / 2;
-            case 3:
-                return getMeasuredWidth() / 2;
-            case 4:
-                return getMeasuredWidth() / 2 + LENGTH_3to4;
-            default:
-                return getMeasuredWidth() / 2;
+            } else {
+                return (int) (getMeasuredWidth() / 2 + verticalDistance * Math.tan(Math.toRadians((FLAG - raDarNum / 2) * regionAngle)));
+            }
+        } else {
+            if (FLAG <= (raDarNum / 2)) {
+                return (int) (getMeasuredWidth() / 2 - verticalDistance * Math.tan(Math.toRadians((raDarNum - 2 * FLAG) * regionAngle / 2)));
+            }
+            //绘制完成进行数值重置
+            return (int) (getMeasuredWidth() / 2 + verticalDistance * Math.tan(Math.toRadians((2 * FLAG - raDarNum) * regionAngle / 2)));
+        }
+    }
+
+    private int getRegionAngle() {
+        int regionAngle = raDarAngle / raDarNum;
+
+        //Log.d("DAI", "RegionAngle  " + regionAngle);
+        //雷达个数为偶数
+        if (raDarNum % 2 == 0) {
+            if (FLAG <= (raDarNum / 2)) {
+                return (raDarNum / 2 - FLAG) * regionAngle;
+            } else {
+                return (FLAG - raDarNum / 2) * regionAngle;
+            }
+        } else {
+            if (FLAG <= (raDarNum / 2)) {
+                return (raDarNum - 2 * FLAG) * regionAngle / 2;
+            }
+            return (2 * FLAG - raDarNum) * regionAngle / 2;
         }
     }
 
 
     private void setPreference(int FLAG) {
         switch (FLAG) {
-            case REGION_FIR:
-                setShader(LENGTH_RADAR1);
+            case 1:
+                //mPaint.setColor(Color.GREEN);
+                setShader(raDar1MeasureLength);
                 break;
-            case REGION_SEC:
-                setShader(LENGTH_RADAR2);
+            case 2:
+                //mPaint.setColor(Color.RED);
+                setShader(raDar2MeasureLength);
                 break;
-            case REGION_THI:
-                setShader(LENGTH_RADAR3);
+            case 3:
+                //mPaint.setColor(Color.BLUE);
+                setShader(raDar3MeasureLength);
                 break;
-            case REGION_FOU:
-                setShader(LENGTH_RADAR4);
+            case 4:
+                //mPaint.setColor(Color.CYAN);
+                setShader(raDar4MeasureLength);
                 break;
-            case REGION_FIF:
-                setShader(LENGTH_RADAR5);
+            case 5:
+                //mPaint.setColor(Color.WHITE);
+                setShader(raDar5MeasureLength);
+                break;
+            case 6:
+                //mPaint.setColor(Color.YELLOW);
+                setShader(raDar6MeasureLength);
                 break;
         }
     }
 
 
     private void setShader(int radarLength) {
-        if (radarLength <= DANGER_DISTANCE) {
+        if (radarLength <= dangerDistance) {
             linearGradient = new LinearGradient(shaderEndX, shaderStartY, shaderEndX, shaderEndY, DANGER_DISTANCE_COLOR, Color.WHITE, Shader.TileMode.REPEAT);
 
             mPaint.setShader(linearGradient);
 
             setText("停止");
             textFlag = false;
-        } else if (radarLength <= SHORT_DISTANCE) {
+        } else if (radarLength <= shortDistance) {
             linearGradient = new LinearGradient(shaderEndX, shaderStartY, shaderEndX, shaderEndY, SHORT_DISTANCE_COLOR, Color.WHITE, Shader.TileMode.REPEAT);
 
             mPaint.setShader(linearGradient);
@@ -612,139 +648,51 @@ public class RaDarView extends View {
         }
     }
 
-    public int getLENGTH_RADAR1() {
-        return LENGTH_RADAR1;
+    public void setVerticalDistance(int verticalDistance) {
+        this.verticalDistance = verticalDistance;
     }
 
-    public void setLENGTH_RADAR1(int LENGTH_RADAR1) {
-        this.LENGTH_RADAR1 = LENGTH_RADAR1;
+    public void setRaDarAngle(int raDarAngle) {
+        this.raDarAngle = raDarAngle;
     }
 
-    public int getLENGTH_RADAR2() {
-        return LENGTH_RADAR2;
+    public void setDangerDistance(int dangerDistance) {
+        this.dangerDistance = dangerDistance;
     }
 
-    public void setLENGTH_RADAR2(int LENGTH_RADAR2) {
-        this.LENGTH_RADAR2 = LENGTH_RADAR2;
+    public void setShortDistance(int shortDistance) {
+        this.shortDistance = shortDistance;
     }
 
-    public int getLENGTH_RADAR3() {
-        return LENGTH_RADAR3;
+    public void setLongDistance(int longDistance) {
+        this.longDistance = longDistance;
     }
 
-    public void setLENGTH_RADAR3(int LENGTH_RADAR3) {
-        this.LENGTH_RADAR3 = LENGTH_RADAR3;
+    public void setRaDar1MeasureLength(int raDar1MeasureLength) {
+        this.raDar1MeasureLength = raDar1MeasureLength;
     }
 
-    public int getLENGTH_RADAR4() {
-        return LENGTH_RADAR4;
+    public void setRaDar2MeasureLength(int raDar2MeasureLength) {
+        this.raDar2MeasureLength = raDar2MeasureLength;
     }
 
-    public void setLENGTH_RADAR4(int LENGTH_RADAR4) {
-        this.LENGTH_RADAR4 = LENGTH_RADAR4;
+    public void setRaDar3MeasureLength(int raDar3MeasureLength) {
+        this.raDar3MeasureLength = raDar3MeasureLength;
     }
 
-    public int getLENGTH_RADAR5() {
-        return LENGTH_RADAR5;
+    public void setRaDar4MeasureLength(int raDar4MeasureLength) {
+        this.raDar4MeasureLength = raDar4MeasureLength;
     }
 
-    public void setLENGTH_RADAR5(int LENGTH_RADAR5) {
-        this.LENGTH_RADAR5 = LENGTH_RADAR5;
+    public void setRaDar5MeasureLength(int raDar5MeasureLength) {
+        this.raDar5MeasureLength = raDar5MeasureLength;
     }
 
-    public int getLENGTH_1to2() {
-        return LENGTH_1to2;
+    public void setRaDar6MeasureLength(int raDar6MeasureLength) {
+        this.raDar6MeasureLength = raDar6MeasureLength;
     }
 
-    public void setLENGTH_1to2(int LENGTH_1to2) {
-        this.LENGTH_1to2 = LENGTH_1to2;
-    }
-
-    public int getLENGTH_2to3() {
-        return LENGTH_2to3;
-    }
-
-    public void setLENGTH_2to3(int LENGTH_2to3) {
-        this.LENGTH_2to3 = LENGTH_2to3;
-    }
-
-    public int getLENGTH_3to4() {
-        return LENGTH_3to4;
-    }
-
-    public void setLENGTH_3to4(int LENGTH_3to4) {
-        this.LENGTH_3to4 = LENGTH_3to4;
-    }
-
-    public int getLENGTH_4to5() {
-        return LENGTH_4to5;
-    }
-
-    public void setLENGTH_4to5(int LENGTH_4to5) {
-        this.LENGTH_4to5 = LENGTH_4to5;
-    }
-
-    public int getANGLE_FIR() {
-        return ANGLE_FIR;
-    }
-
-    public void setANGLE_FIR(int ANGLE_FIR) {
-        this.ANGLE_FIR = ANGLE_FIR;
-    }
-
-    public int getANGLE_FIF() {
-        return ANGLE_FIF;
-    }
-
-    public void setANGLE_FIF(int ANGLE_FIF) {
-        this.ANGLE_FIF = ANGLE_FIF;
-    }
-
-    public int getANGLE_SEC() {
-        return ANGLE_SEC;
-    }
-
-    public void setANGLE_SEC(int ANGLE_SEC) {
-        this.ANGLE_SEC = ANGLE_SEC;
-    }
-
-    public int getANGLE_THI() {
-        return ANGLE_THI;
-    }
-
-    public void setANGLE_THI(int ANGLE_THI) {
-        this.ANGLE_THI = ANGLE_THI;
-    }
-
-    public int getANGLE_FOU() {
-        return ANGLE_FOU;
-    }
-
-    public void setANGLE_FOU(int ANGLE_FOU) {
-        this.ANGLE_FOU = ANGLE_FOU;
-    }
-
-    public int getDANGER_DISTANCE() {
-        return DANGER_DISTANCE;
-    }
-
-    public void setDANGER_DISTANCE(int DANGER_DISTANCE) {
-        this.DANGER_DISTANCE = DANGER_DISTANCE;
-    }
-
-    public int getSHORT_DISTANCE() {
-        return SHORT_DISTANCE;
-    }
-
-    public void setSHORT_DISTANCE(int SHORT_DISTANCE) {
-        this.SHORT_DISTANCE = SHORT_DISTANCE;
-    }
-
-    public int getLONG_DISTANCE() {
-        return LONG_DISTANCE;
-    }
-
-    public void setLONG_DISTANCE(int LONG_DISTANCE) {
-        this.LONG_DISTANCE = LONG_DISTANCE;
+    public void setRaDarNum(int raDarNum) {
+        this.raDarNum = raDarNum;
     }
 }

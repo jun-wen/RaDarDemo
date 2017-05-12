@@ -31,11 +31,20 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
     private RaDarHandler raDarHandler = new RaDarHandler(new WeakReference<MainActivity>(this));
 
-    private int raDra1 = 65;
-    private int raDra2 = 45;
-    private int raDra3 = 80;
-    private int raDra4 = 60;
-    private int raDra5 = 50;
+    private double raDarAngle = Math.PI * 8 / 9;
+
+    //private int raDarOffsetAngle = 30;
+
+    private int raDarNum = 5;
+
+    private int raDarVerticalDistance = 80;
+
+    private int raDar1 = 40;
+    private int raDar2 = 55;
+    private int raDar3 = 30;
+    private int raDar4 = 22;
+    private int raDar5 = 44;
+    private int raDar6 = 60;
 
 //    private int raDra1 = 55;
 //    private int raDra2 = 40;
@@ -76,16 +85,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         initPointList();
 
-        //存在的问题：
-        //问题1：不同分区间有可能出现未填充区域（一条白线）
-        //问题2：若起始地址不为区域一（eg：区域一内容为空，点集从区域二开始出现）
-        //问题3：区域间突变的发生（eg:从区域3跳到区域2）
-        //问题4：有的区域会贴到Bitmap上面           原因：问题点坐标中x过大（过于靠近图片边界），y为负值且过小
-        //问题5：动态变换时，分区不明显（边界线改变）
-        //问题6：对于过渡点的优化，可以解决问题5
-        //问题7：对于分区的边界线的优化  可以尝试Paint抗锯齿
-
-        setPoint(raDra1, raDra2, raDra3, raDra4, raDra5);
+        setPoint(raDar1, raDar2, raDar3, raDar4, raDar5, raDar6);
 //        setPoint(65, 30, 20, 47, 30);
 //        setPoint(25, 50, 30, 40, 60);
 //        setPoint(65, 40, 10, 20, 35);   //出现白线
@@ -101,64 +101,78 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     }
 
     private void setRaDarView() {
-        mRaDarView.setANGLE_FIR(36);
-        mRaDarView.setANGLE_SEC(45);
-        mRaDarView.setANGLE_THI(45);
-        mRaDarView.setANGLE_FOU(45);
-        mRaDarView.setANGLE_FIF(36);
-        mRaDarView.setLENGTH_1to2(35);
-        mRaDarView.setLENGTH_2to3(50);
-        mRaDarView.setLENGTH_3to4(50);
-        mRaDarView.setLENGTH_4to5(35);
-        mRaDarView.setDANGER_DISTANCE(20);
-        mRaDarView.setSHORT_DISTANCE(40);
-        mRaDarView.setLONG_DISTANCE(60);
-        mRaDarView.setLENGTH_RADAR1(raDra1);
-        mRaDarView.setLENGTH_RADAR2(raDra2);
-        mRaDarView.setLENGTH_RADAR3(raDra3);
-        mRaDarView.setLENGTH_RADAR4(raDra4);
-        mRaDarView.setLENGTH_RADAR5(raDra5);
+        mRaDarView.setRaDarAngle(160);
+        //mRaDarView.setRaDarOffsetAngle(raDarOffsetAngle);
+        mRaDarView.setVerticalDistance(raDarVerticalDistance);
+        mRaDarView.setRaDarNum(raDarNum);
+        mRaDarView.setDangerDistance(20);
+        mRaDarView.setShortDistance(40);
+        mRaDarView.setLongDistance(60);
+        mRaDarView.setRaDar1MeasureLength(raDar1);
+        mRaDarView.setRaDar2MeasureLength(raDar2);
+        mRaDarView.setRaDar3MeasureLength(raDar3);
+        mRaDarView.setRaDar4MeasureLength(raDar4);
+        mRaDarView.setRaDar5MeasureLength(raDar5);
+        mRaDarView.setRaDar6MeasureLength(raDar6);
     }
 
-    private void setPoint(double ra, double rb, double rc, double rd, double re) {
+    private void setPoint(double r1, double r2, double r3, double r4, double r5, double r6) {
         mUpPointList.clear();
         mDownPointList.clear();
 
-        CarPoint cp = new CarPoint(ra, rb, rc, rd, re, Math.PI / 4, Math.PI / 5, 20, 35, 50, 50, 35);
-        RaDar rg = cp.getRangeAll();
-        double end = rg.getEnd();
 
+//        CarPoint cp = new CarPoint(ra, rb, rc, rd, Math.PI / 6, Math.PI / 6, 20, 35, 25, 25, 35);
+//        RaDar rg = cp.getRaDarAll();
+//        double end = rg.getEnd();
+
+        //double[] radius = {r1, r2, r3, r4, r5, r6};// 雷达实际距离
+        double[] radius = {r1, r2, r3, r4, r5};// 雷达实际距离
+        //double[] radius = {r1, r2, r3, r4};// 雷达实际距离
+        //double[] radius = {r1, r2, r3};// 雷达实际距离
+        CarPoint cp = new CarPoint(raDarNum, radius, raDarAngle, raDarVerticalDistance, 180);
+        RaDar rg = cp.getRaDarAll();
+        double end = rg.getEnd();
         try {
-            for (double i = rg.getStart(); i < end; i += 20) {
+            for (double i = rg.getStart(); i < end; i += 3) {
                 int x = (int) ((i + getScreenWidth() / 2));
                 int y = -((int) (cp.caculate(i)));
+                //Log.d("DAI", "UP" + "  X   " + x + "    Y   " + y);
                 mUpPointList.add(new Point(x, y));
             }
         } catch (Exception e) {
+            //Log.d("DAI", "UP EXCEPTION ");
             e.printStackTrace();
         }
 
-        CarPoint cp2 = new CarPoint(ra + LENGTH_RADIUS, rb + LENGTH_RADIUS, rc + LENGTH_RADIUS, rd + LENGTH_RADIUS, re + LENGTH_RADIUS, Math.PI / 4, Math.PI / 5, 20, 35, 50, 50, 35);
-        RaDar rg2 = cp2.getRangeAll();
+        //double[] radius2 = {r1 + LENGTH_RADIUS, r2 + LENGTH_RADIUS, r3 + LENGTH_RADIUS, r4 + LENGTH_RADIUS, r5 + LENGTH_RADIUS, r6 + LENGTH_RADIUS};// 雷达实际距离
+        double[] radius2 = {r1 + LENGTH_RADIUS, r2 + LENGTH_RADIUS, r3 + LENGTH_RADIUS, r4 + LENGTH_RADIUS, r5 + LENGTH_RADIUS};// 雷达实际距离
+        //double[] radius2 = {r1 + LENGTH_RADIUS, r2 + LENGTH_RADIUS, r3 + LENGTH_RADIUS, r4 + LENGTH_RADIUS};// 雷达实际距离
+        //double[] radius2 = {r1 + LENGTH_RADIUS, r2 + LENGTH_RADIUS, r3 + LENGTH_RADIUS};// 雷达实际距离
+        //CarPoint cp2 = new CarPoint(ra + LENGTH_RADIUS, rb + LENGTH_RADIUS, rc + LENGTH_RADIUS, rd + LENGTH_RADIUS, Math.PI / 6, Math.PI / 6, 20, 35, 25, 25, 35);
+        CarPoint cp2 = new CarPoint(raDarNum, radius2, raDarAngle, raDarVerticalDistance, 180);
+        RaDar rg2 = cp2.getRaDarAll();
         double end2 = rg2.getEnd();
 
         try {
-            for (double i = rg2.getStart(); i < end2; i += 30) {
+            for (double i = rg2.getStart(); i < end2; i += 3) {
                 int x = (int) ((i + getScreenWidth() / 2));
                 int y = -((int) (cp2.caculate(i)));
+                //Log.d("DAI", "DOWN" + "  X   " + x + "    Y   " + y);
                 mDownPointList.add(new Point(x, y));
             }
         } catch (Exception e) {
             e.printStackTrace();
+            //Log.d("DAI", "RaDar Down");
         } finally {
 
         }
 
-        mRaDarView.setLENGTH_RADAR1((int) ra);
-        mRaDarView.setLENGTH_RADAR2((int) rb);
-        mRaDarView.setLENGTH_RADAR3((int) rc);
-        mRaDarView.setLENGTH_RADAR4((int) rd);
-        mRaDarView.setLENGTH_RADAR5((int) re);
+        mRaDarView.setRaDar1MeasureLength((int) r1);
+        mRaDarView.setRaDar2MeasureLength((int) r2);
+        mRaDarView.setRaDar3MeasureLength((int) r3);
+        mRaDarView.setRaDar4MeasureLength((int) r4);
+        mRaDarView.setRaDar5MeasureLength((int) r5);
+        mRaDarView.setRaDar6MeasureLength((int) r6);
 
         mRaDarView.setPointList(mUpPointList, mDownPointList);
     }
@@ -204,23 +218,23 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
             switch (msg.arg1) {
                 case 1:
-                    MainActivity.setPoint(65, 30, 20, 47, 30);
+                    MainActivity.setPoint(65, 30, 20, 47, 30, 20);
                     break;
                 case 2:
 
-                    MainActivity.setPoint(65, 50, 30, 40, 60);
+                    MainActivity.setPoint(65, 50, 30, 40, 60, 60);
                     break;
                 case 3:
-                    MainActivity.setPoint(60, 50, 60, 90, 70);
+                    MainActivity.setPoint(60, 50, 60, 90, 70, 50);
                     break;
                 case 4:
-                    MainActivity.setPoint(30, 40, 50, 37, 46);
+                    MainActivity.setPoint(30, 40, 50, 37, 46, 70);
                     break;
                 case 5:
-                    MainActivity.setPoint(45, 30, 48, 20, 50);
+                    MainActivity.setPoint(45, 30, 48, 20, 50, 80);
                     break;
                 case 6:
-                    MainActivity.setPoint(65, 45, 80, 60, 50);
+                    MainActivity.setPoint(65, 45, 80, 60, 50, 60);
 
                     MainActivity.flag = 0;
                     break;
